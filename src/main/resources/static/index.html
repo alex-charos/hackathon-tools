@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hackathon Scoring App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            padding: 40px;
+            text-align: center;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results-section {
+            display: none;
+            padding: 40px;
+            background: #f8f9ff;
+        }
+
+        .results-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .results-title {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .results-subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .leaderboard {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .leaderboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 60px 1fr 100px 120px;
+            gap: 20px;
+            font-weight: 600;
+        }
+
+        .team-row {
+            display: grid;
+            grid-template-columns: 60px 1fr 100px 120px;
+            gap: 20px;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            transition: all 0.3s ease;
+            align-items: center;
+        }
+
+        .team-row:hover {
+            background: #f8f9ff;
+            transform: translateX(5px);
+        }
+
+        .team-row:last-child {
+            border-bottom: none;
+        }
+
+        .rank {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rank-1 { color: #FFD700; }
+        .rank-2 { color: #C0C0C0; }
+        .rank-3 { color: #CD7F32; }
+
+        .team-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .score {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #667eea;
+            text-align: center;
+        }
+
+        .prize {
+            text-align: center;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .prize-1 {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: white;
+        }
+
+        .prize-2 {
+            background: linear-gradient(135deg, #C0C0C0, #A0A0A0);
+            color: white;
+        }
+
+        .prize-3 {
+            background: linear-gradient(135deg, #CD7F32, #B8860B);
+            color: white;
+        }
+
+        .prize-participant {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #c62828;
+            display: none;
+        }
+
+        .success-message {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #4caf50;
+            display: none;
+        }
+
+        .reset-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .reset-btn:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .upload-section, .results-section {
+                padding: 30px 20px;
+            }
+
+            .leaderboard-header, .team-row {
+                grid-template-columns: 50px 1fr 80px 100px;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .rank {
+                font-size: 1.2rem;
+            }
+
+            .team-name {
+                font-size: 1rem;
+            }
+
+            .score {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 Hackathon Scoring</h1>
+            <p>Upload your Excel scoring file to see the results and winners</p>
+        </div>
+
+        <div class="upload-section" id="uploadSection">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📊</div>
+                <div class="upload-text">Drop your Excel file here</div>
+                <div class="upload-subtext">or click to browse files</div>
+                <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls">
+            </div>
+            
+            <button class="upload-btn" id="uploadBtn" disabled>Upload File</button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing your file...</p>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h2 class="results-title">🏆 Leaderboard</h2>
+                <p class="results-subtitle">Teams ranked by average score</p>
+            </div>
+            
+            <div class="leaderboard" id="leaderboard">
+                <div class="leaderboard-header">
+                    <div>Rank</div>
+                    <div>Team</div>
+                    <div>Score</div>
+                    <div>Prize</div>
+                </div>
+                <div id="teamRows"></div>
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="reset-btn" id="resetBtn">Upload Another File</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class HackathonScoringApp {
+            constructor() {
+                this.apiUrl = '/scores/upload';
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                const uploadArea = document.getElementById('uploadArea');
+                const fileInput = document.getElementById('fileInput');
+                const uploadBtn = document.getElementById('uploadBtn');
+                const resetBtn = document.getElementById('resetBtn');
+
+                // File input change
+                fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+
+                // Upload area click
+                uploadArea.addEventListener('click', () => fileInput.click());
+
+                // Drag and drop
+                uploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
+                uploadArea.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+                uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
+
+                // Upload button
+                uploadBtn.addEventListener('click', () => this.uploadFile());
+
+                // Reset button
+                resetBtn.addEventListener('click', () => this.resetApp());
+            }
+
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.validateAndSetFile(file);
+                }
+            }
+
+            handleDragOver(event) {
+                event.preventDefault();
+                event.currentTarget.classList.add('dragover');
+            }
+
+            handleDragLeave(event) {
+                event.preventDefault();
+                event.currentTarget.classList.remove('dragover');
+            }
+
+            handleDrop(event) {
+                event.preventDefault();
+                event.currentTarget.classList.remove('dragover');
+                
+                const files = event.dataTransfer.files;
+                if (files.length > 0) {
+                    this.validateAndSetFile(files[0]);
+                }
+            }
+
+            validateAndSetFile(file) {
+                // Check file type
+                const allowedTypes = [
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-excel'
+                ];
+                
+                if (!allowedTypes.includes(file.type)) {
+                    this.showError('Please select a valid Excel file (.xlsx or .xls)');
+                    return;
+                }
+
+                // Check file size (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    this.showError('File size must be less than 10MB');
+                    return;
+                }
+
+                this.selectedFile = file;
+                document.getElementById('uploadBtn').disabled = false;
+                this.hideMessages();
+            }
+
+            async uploadFile() {
+                if (!this.selectedFile) {
+                    this.showError('Please select a file first');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', this.selectedFile);
+
+                this.showLoading(true);
+                this.hideMessages();
+
+                try {
+                    const response = await fetch(this.apiUrl, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const scores = await response.json();
+                    this.displayResults(scores);
+                    this.showSuccess(`Successfully processed ${scores.length} teams!`);
+                    
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    this.showError('Failed to upload file. Please try again.');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            displayResults(scores) {
+                const teamRows = document.getElementById('teamRows');
+                teamRows.innerHTML = '';
+
+                scores.forEach((team, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'team-row';
+
+                    const rank = index + 1;
+                    const rankClass = this.getRankClass(rank);
+                    const prize = this.getPrize(rank);
+                    const prizeClass = this.getPrizeClass(rank);
+
+                    row.innerHTML = `
+                        <div class="rank ${rankClass}">${rank}</div>
+                        <div class="team-name">Team ${team.teamId}</div>
+                        <div class="score">${team.average.toFixed(2)}</div>
+                        <div class="prize ${prizeClass}">${prize}</div>
+                    `;
+
+                    teamRows.appendChild(row);
+                });
+
+                // Show results section
+                document.getElementById('uploadSection').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'block';
+            }
+
+            getRankClass(rank) {
+                if (rank === 1) return 'rank-1';
+                if (rank === 2) return 'rank-2';
+                if (rank === 3) return 'rank-3';
+                return '';
+            }
+
+            getPrize(rank) {
+                if (rank === 1) return '🥇 1st Place';
+                if (rank === 2) return '🥈 2nd Place';
+                if (rank === 3) return '🥉 3rd Place';
+                return 'Participant';
+            }
+
+            getPrizeClass(rank) {
+                if (rank === 1) return 'prize-1';
+                if (rank === 2) return 'prize-2';
+                if (rank === 3) return 'prize-3';
+                return 'prize-participant';
+            }
+
+            showLoading(show) {
+                document.getElementById('loading').style.display = show ? 'block' : 'none';
+                document.getElementById('uploadBtn').disabled = show;
+            }
+
+            showError(message) {
+                const errorDiv = document.getElementById('errorMessage');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+
+            showSuccess(message) {
+                const successDiv = document.getElementById('successMessage');
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+            }
+
+            hideMessages() {
+                document.getElementById('errorMessage').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'none';
+            }
+
+            resetApp() {
+                this.selectedFile = null;
+                document.getElementById('fileInput').value = '';
+                document.getElementById('uploadBtn').disabled = true;
+                document.getElementById('uploadSection').style.display = 'block';
+                document.getElementById('resultsSection').style.display = 'none';
+                this.hideMessages();
+            }
+        }
+
+        // Initialize the app when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new HackathonScoringApp();
+        });
+    </script>
+</body>
+</html>
