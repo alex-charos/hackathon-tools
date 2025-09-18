@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentation Order Draw</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background-image: url('https://resolvehackathon.open-conf.gr/wp-content/uploads/2025/04/resolve-04-00-dark-mode-03.png');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            min-height: 200px;
+        }
+
+        .draw-section {
+            padding: 40px;
+            text-align: center;
+        }
+
+        .draw-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+
+        .draw-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .draw-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-section {
+            display: none;
+            padding: 40px;
+            background: #f8f9ff;
+        }
+
+        .results-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .results-title {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .results-subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .leaderboard {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .leaderboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 60px 1fr;
+            gap: 20px;
+            font-weight: 600;
+        }
+
+        .team-row {
+            display: grid;
+            grid-template-columns: 60px 1fr;
+            gap: 20px;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            transition: all 0.3s ease;
+            align-items: center;
+        }
+
+        .team-row:hover {
+            background: #f8f9ff;
+            transform: translateX(5px);
+        }
+
+        .animate-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .team-row:last-child {
+            border-bottom: none;
+        }
+
+        .order {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .team-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+
+
+        .reset-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .reset-btn:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header {
+                padding: 30px 20px;
+            }
+
+            .draw-section, .results-section {
+                padding: 30px 20px;
+            }
+
+            .leaderboard-header, .team-row {
+                grid-template-columns: 50px 1fr;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .order {
+                font-size: 1.2rem;
+            }
+
+            .team-name {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+        </div>
+
+        <div class="draw-section" id="drawSection">
+            <button class="draw-btn" id="drawBtn">Draw Presentation Order</button>
+            <p style="color: #666; margin-top: 10px;">Click to randomly determine the presentation order for all teams</p>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h2 class="results-title">📋 Presentation Order</h2>
+                <p class="results-subtitle">Teams will present in this randomly drawn order</p>
+            </div>
+
+            <div class="leaderboard" id="leaderboard">
+                <div class="leaderboard-header">
+                    <div>Order</div>
+                    <div>Team</div>
+                </div>
+                <div id="teamRows"></div>
+            </div>
+
+            <div style="text-align: center;">
+                <button class="reset-btn" id="resetBtn">Draw Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PresentationOrderDraw {
+            constructor() {
+                // Internal array of team objects with name and type
+                this.teams = [
+                   
+                    { name: "WAGMI", type: "physical" },
+                    { name: "Apparent", type: "online" },
+                    { name: "GUICOR Innovation Lab", type: "online" },
+                    { name: "Silksong Valley", type: "online" },
+                    { name: "Interoperability Masters", type: "physical" },
+                    { name: "Voston Labs", type: "physical" },
+                    { name: "Riverfolk", type: "physical" },
+                    { name: "ARPSolution", type: "physical" },
+                    { name: "Zone01 Athens", type: "physical" },
+                    { name: "Vitreous", type: "physical" },
+                    { name: "Gen Z", type: "physical" }
+                ];
+
+                this.drawnOrder = [];
+                this.teamRows = [];
+                this.currentAnimationIndex = 0;
+                this.isAnimating = false;
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                const drawBtn = document.getElementById('drawBtn');
+                const resetBtn = document.getElementById('resetBtn');
+
+                drawBtn.addEventListener('click', () => this.drawOrder());
+                resetBtn.addEventListener('click', () => this.resetDraw());
+
+                // Space bar listener for animation
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space' && this.isAnimating) {
+                        e.preventDefault();
+                        this.showNextTeam();
+                    }
+                });
+            }
+
+            // Simple hash function to create seed from team names and types
+            hashString(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // Convert to 32-bit integer
+                }
+                return Math.abs(hash);
+            }
+
+            // Get emoji for team type
+            getTeamEmoji(type) {
+                return type === 'physical' ? '👥' : '💻';
+            }
+
+            // Seeded random number generator (Linear Congruential Generator)
+            seededRandom(seed) {
+                const a = 1664525;
+                const c = 1013904223;
+                const m = Math.pow(2, 32);
+
+                let currentSeed = seed;
+
+                return function() {
+                    currentSeed = (a * currentSeed + c) % m;
+                    return currentSeed / m;
+                };
+            }
+
+            // Fisher-Yates shuffle with seeded random
+            shuffleArray(array, randomFunc) {
+                const shuffled = [...array];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(randomFunc() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+                return shuffled;
+            }
+
+            drawOrder() {
+                // Create seed from concatenated team names and types
+                const concatenatedData = this.teams.map(team => team.name + team.type).join('');
+                const seed = this.hashString(concatenatedData);
+
+                // Create seeded random function
+                const randomFunc = this.seededRandom(seed);
+
+                // Shuffle teams using seeded random
+                this.drawnOrder = this.shuffleArray(this.teams, randomFunc);
+
+                // Display results
+                this.displayResults();
+
+                // Hide draw section, show results
+                document.getElementById('drawSection').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'block';
+
+                // Start animation
+                this.startAnimation();
+            }
+
+            displayResults() {
+                const teamRows = document.getElementById('teamRows');
+                teamRows.innerHTML = '';
+                this.teamRows = [];
+
+                this.drawnOrder.forEach((team, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'team-row';
+                    row.style.opacity = '0'; // Initially hidden
+
+                    const order = index + 1;
+                    const emoji = this.getTeamEmoji(team.type);
+                    const displayName = `${emoji} ${team.name} (${team.type})`;
+
+                    row.innerHTML = `
+                        <div class="order">${order}</div>
+                        <div class="team-name">${displayName}</div>
+                    `;
+
+                    teamRows.appendChild(row);
+                    this.teamRows.push(row);
+                });
+            }
+
+            startAnimation() {
+                this.currentAnimationIndex = 0;
+                this.isAnimating = true;
+                // Wait for space bar to start revealing teams
+            }
+
+            showNextTeam() {
+                if (this.currentAnimationIndex < this.teamRows.length) {
+                    const row = this.teamRows[this.currentAnimationIndex];
+                    row.style.opacity = '1';
+                    row.classList.add('animate-in');
+                    this.currentAnimationIndex++;
+                } else {
+                    // Animation complete
+                    this.isAnimating = false;
+                }
+            }
+
+
+
+            resetDraw() {
+                this.drawnOrder = [];
+                document.getElementById('drawSection').style.display = 'block';
+                document.getElementById('resultsSection').style.display = 'none';
+            }
+        }
+
+        // Initialize the app when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new PresentationOrderDraw();
+        });
+    </script>
+</body>
+</html>

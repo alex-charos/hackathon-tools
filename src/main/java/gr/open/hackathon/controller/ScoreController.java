@@ -17,9 +17,10 @@ public class ScoreController {
     private ScoreService scoreService;
 
     @PostMapping("/upload")
-    public ResponseEntity<List<TeamScore>> uploadFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<List<TeamScore>> uploadFile(@RequestParam("file") MultipartFile file,
+                                                     @RequestParam(value = "verifyResults", defaultValue = "false") boolean verifyResults) {
         try {
-            List<TeamScore> scores = scoreService.calculateScores(file);
+            List<TeamScore> scores = scoreService.calculateScores(file, verifyResults);
             return ResponseEntity.ok(scores);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();

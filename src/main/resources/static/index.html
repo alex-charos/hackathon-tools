@@ -28,22 +28,18 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-image: url('https://resolvehackathon.open-conf.gr/wp-content/uploads/2025/04/resolve-04-00-dark-mode-03.png');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
             color: white;
             padding: 40px;
             text-align: center;
+            position: relative;
+            min-height: 200px;
         }
 
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
 
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
 
         .upload-section {
             padding: 40px;
@@ -170,14 +166,14 @@
             color: white;
             padding: 20px;
             display: grid;
-            grid-template-columns: 60px 1fr 100px 120px;
+            grid-template-columns: 60px 1fr 120px;
             gap: 20px;
             font-weight: 600;
         }
 
         .team-row {
             display: grid;
-            grid-template-columns: 60px 1fr 100px 120px;
+            grid-template-columns: 60px 1fr 120px;
             gap: 20px;
             padding: 20px;
             border-bottom: 1px solid #eee;
@@ -188,6 +184,56 @@
         .team-row:hover {
             background: #f8f9ff;
             transform: translateX(5px);
+        }
+
+        .animate-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .congrats-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 1s ease-out;
+            display: none;
+        }
+
+        .congrats-content {
+            text-align: center;
+            color: white;
+            font-size: 4rem;
+            font-weight: bold;
+            animation: bigBang 2s ease-out;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes bigBang {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
         }
 
         .team-row:last-child {
@@ -303,21 +349,26 @@
             }
 
             .leaderboard-header, .team-row {
-                grid-template-columns: 50px 1fr 80px 100px;
-                gap: 15px;
-                padding: 15px;
+                gap: 5px;
+                padding: 10px;
+                font-size: 0.8rem;
             }
 
             .rank {
-                font-size: 1.2rem;
-            }
-
-            .team-name {
                 font-size: 1rem;
             }
 
+            .team-name {
+                font-size: 0.9rem;
+            }
+
             .score {
-                font-size: 1.1rem;
+                font-size: 0.9rem;
+            }
+
+            .prize {
+                font-size: 0.8rem;
+                padding: 4px 8px;
             }
         }
     </style>
@@ -325,8 +376,6 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏆 Hackathon Scoring</h1>
-            <p>Upload your Excel scoring file to see the results and winners</p>
         </div>
 
         <div class="upload-section" id="uploadSection">
@@ -358,15 +407,26 @@
                 <div class="leaderboard-header">
                     <div>Rank</div>
                     <div>Team</div>
-                    <div>Score</div>
                     <div>Prize</div>
                 </div>
                 <div id="teamRows"></div>
             </div>
             
+            <div style="text-align: center; margin-top: 20px;">
+                <div id="fileHash" style="font-family: monospace; font-size: 0.9rem; color: #666; background: #f8f9ff; padding: 10px; border-radius: 5px; display: none;"></div>
+            </div>
+
             <div style="text-align: center;">
+                <button class="reset-btn" id="replayBtn" style="margin-right: 10px;">Replay Animation</button>
                 <button class="reset-btn" id="resetBtn">Upload Another File</button>
             </div>
+        </div>
+    </div>
+
+    <div class="congrats-overlay" id="congratsOverlay">
+        <div class="congrats-content">
+            🎉 CONGRATULATIONS! 🎉<br>
+            <span style="font-size: 2rem;">1st Place Winner!</span>
         </div>
     </div>
 
@@ -374,6 +434,33 @@
         class HackathonScoringApp {
             constructor() {
                 this.apiUrl = '/scores/upload';
+                this.teamRows = [];
+                this.currentAnimationIndex = 0;
+                this.teamNames = {
+                    1: 'Interoperability Masters',
+                    2: 'Silksong Valley',
+                    3: 'Apparent',
+                    4: 'Riverfolk',
+                    5: 'WAGMI',
+                    6: 'GUICOR Innovation Lab',
+                    7: 'GenZ',
+                    8: 'Voston Labs',
+                    9: 'Vitreous',
+                    10: 'Zone01 Athens',
+                    11: 'ARPSolution'
+                };
+                const urlParams = new URLSearchParams(window.location.search);
+                const animationParam = urlParams.get('animation');
+                if (animationParam && !isNaN(animationParam)) {
+                    this.animation = parseInt(animationParam);
+                    document.addEventListener('keydown', (e) => {
+                        if (e.code === 'Space') {
+                            e.preventDefault();
+                            this.showNextAnimatedTeam();
+                        }
+                    });
+                }
+                this.verifyResults = urlParams.get('verifyResults') === 'true';
                 this.initializeEventListeners();
             }
 
@@ -382,6 +469,7 @@
                 const fileInput = document.getElementById('fileInput');
                 const uploadBtn = document.getElementById('uploadBtn');
                 const resetBtn = document.getElementById('resetBtn');
+                const replayBtn = document.getElementById('replayBtn');
 
                 // File input change
                 fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
@@ -399,6 +487,9 @@
 
                 // Reset button
                 resetBtn.addEventListener('click', () => this.resetApp());
+
+                // Replay button
+                replayBtn.addEventListener('click', () => this.replayAnimation());
             }
 
             handleFileSelect(event) {
@@ -428,13 +519,13 @@
                 }
             }
 
-            validateAndSetFile(file) {
+            async validateAndSetFile(file) {
                 // Check file type
                 const allowedTypes = [
                     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     'application/vnd.ms-excel'
                 ];
-                
+
                 if (!allowedTypes.includes(file.type)) {
                     this.showError('Please select a valid Excel file (.xlsx or .xls)');
                     return;
@@ -447,8 +538,24 @@
                 }
 
                 this.selectedFile = file;
+
+                // Calculate file hash
+                try {
+                    this.fileHash = await this.calculateFileHash(file);
+                } catch (error) {
+                    console.error('Error calculating file hash:', error);
+                    this.fileHash = 'Unable to calculate hash';
+                }
+
                 document.getElementById('uploadBtn').disabled = false;
                 this.hideMessages();
+            }
+
+            async calculateFileHash(file) {
+                const arrayBuffer = await file.arrayBuffer();
+                const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
             }
 
             async uploadFile() {
@@ -459,6 +566,7 @@
 
                 const formData = new FormData();
                 formData.append('file', this.selectedFile);
+                formData.append('verifyResults', this.verifyResults.toString());
 
                 this.showLoading(true);
                 this.hideMessages();
@@ -476,7 +584,7 @@
                     const scores = await response.json();
                     this.displayResults(scores);
                     this.showSuccess(`Successfully processed ${scores.length} teams!`);
-                    
+
                 } catch (error) {
                     console.error('Upload error:', error);
                     this.showError('Failed to upload file. Please try again.');
@@ -486,8 +594,41 @@
             }
 
             displayResults(scores) {
+                if (this.animation) {
+                    scores = scores.slice(0, this.animation);
+                }
+                this.scores = scores; // Store for later use
+                const leaderboard = document.getElementById('leaderboard');
                 const teamRows = document.getElementById('teamRows');
+
+                // Update header based on verifyResults
+                const header = leaderboard.querySelector('.leaderboard-header');
+                if (this.verifyResults) {
+                    header.innerHTML = `
+                        <div>Rank</div>
+                        <div>Team</div>
+                        <div>Avg Score</div>
+                        <div>Relevance & Impact</div>
+                        <div>Innovation & Future Readiness</div>
+                        <div>Functionality, Feasibility & Scalability</div>
+                        <div>Ethics, Security & Inclusion</div>
+                        <div>Presentation & Communication</div>
+                        <div>Total Votes</div>
+                        <div>Prize</div>
+                    `;
+                    header.style.gridTemplateColumns = '50px 1fr 80px 80px 80px 80px 80px 80px 80px 120px';
+                } else {
+                    header.innerHTML = `
+                        <div>Rank</div>
+                        <div>Team</div>
+                        <div>Prize</div>
+                    `;
+                    header.style.gridTemplateColumns = '60px 1fr 120px';
+                }
+
                 teamRows.innerHTML = '';
+                this.teamRows = [];
+                this.currentAnimationIndex = 0;
 
                 scores.forEach((team, index) => {
                     const row = document.createElement('div');
@@ -498,19 +639,50 @@
                     const prize = this.getPrize(rank);
                     const prizeClass = this.getPrizeClass(rank);
 
-                    row.innerHTML = `
-                        <div class="rank ${rankClass}">${rank}</div>
-                        <div class="team-name">Team ${team.teamId}</div>
-                        <div class="score">${team.average.toFixed(2)}</div>
-                        <div class="prize ${prizeClass}">${prize}</div>
-                    `;
+                    const teamName = (rank === 1 && this.animation) ? '???' : (this.teamNames[team.teamId] || `Team ${team.teamId}`);
+
+                    if (this.verifyResults) {
+                        const categoryAverages = team.categoryAverages || {};
+                        row.innerHTML = `
+                            <div class="rank ${rankClass}">${rank}</div>
+                            <div class="team-name">${teamName}</div>
+                            <div class="score">${team.average.toFixed(2)}</div>
+                            <div class="score">${(categoryAverages['Relevance & Impact'] || 0).toFixed(2)}</div>
+                            <div class="score">${(categoryAverages['Innovation & Future Readiness'] || 0).toFixed(2)}</div>
+                            <div class="score">${(categoryAverages['Functionality, Feasibility & Scalability'] || 0).toFixed(2)}</div>
+                            <div class="score">${(categoryAverages['Ethics, Security & Inclusion'] || 0).toFixed(2)}</div>
+                            <div class="score">${(categoryAverages['Presentation & Communication'] || 0).toFixed(2)}</div>
+                            <div class="score">${team.totalVotes || 0}</div>
+                            <div class="prize ${prizeClass}">${prize}</div>
+                        `;
+                        row.style.gridTemplateColumns = '50px 1fr 80px 80px 80px 80px 80px 80px 80px 120px';
+                    } else {
+                        row.innerHTML = `
+                            <div class="rank ${rankClass}">${rank}</div>
+                            <div class="team-name">${teamName}</div>
+                            <div class="prize ${prizeClass}">${prize}</div>
+                        `;
+                        row.style.gridTemplateColumns = '60px 1fr 120px';
+                    }
 
                     teamRows.appendChild(row);
+
+                    if (this.animation && index < this.animation) {
+                        row.style.opacity = '0';
+                        this.teamRows.unshift(row); // Add to front for reverse order
+                    }
                 });
 
                 // Show results section
                 document.getElementById('uploadSection').style.display = 'none';
                 document.getElementById('resultsSection').style.display = 'block';
+
+                // Display file hash
+                if (this.fileHash) {
+                    const hashDiv = document.getElementById('fileHash');
+                    hashDiv.textContent = `File SHA-256: ${this.fileHash}`;
+                    hashDiv.style.display = 'block';
+                }
             }
 
             getRankClass(rank) {
@@ -556,6 +728,50 @@
                 document.getElementById('successMessage').style.display = 'none';
             }
 
+            showNextAnimatedTeam() {
+                // Hide congrats overlay
+                document.getElementById('congratsOverlay').style.display = 'none';
+
+                if (this.currentAnimationIndex < this.teamRows.length) {
+                    const row = this.teamRows[this.currentAnimationIndex];
+                    row.style.opacity = '1';
+                    row.classList.add('animate-in');
+
+                    if (this.currentAnimationIndex === this.teamRows.length - 1) {
+                        // Show congrats for 1st place
+                        const actualTeamName = this.teamNames[this.scores[0].teamId] || `Team ${this.scores[0].teamId}`; // since scores[0] is 1st place
+                        const congratsContent = document.querySelector('.congrats-content');
+                        congratsContent.innerHTML = `
+                            🎉 ${actualTeamName} 🎉<br>
+                            <span style="font-size: 2rem;">  1st Place Winner! - CONGRATULATIONS! </span>
+                        `;
+                        setTimeout(() => {
+                            document.getElementById('congratsOverlay').style.display = 'flex';
+                            // Reveal the name in the table after congrats animation
+                            setTimeout(() => {
+                                row.querySelector('.team-name').textContent = actualTeamName;
+                            }, 2000); // after bigBang animation
+                        }, 600); // after slide in animation
+                    }
+
+                    this.currentAnimationIndex++;
+                }
+            }
+
+            replayAnimation() {
+                // Hide congrats overlay
+                document.getElementById('congratsOverlay').style.display = 'none';
+
+                // Reset animation state
+                this.currentAnimationIndex = 0;
+
+                // Hide all animated rows and remove animation class
+                this.teamRows.forEach(row => {
+                    row.style.opacity = '0';
+                    row.classList.remove('animate-in');
+                });
+            }
+
             resetApp() {
                 this.selectedFile = null;
                 document.getElementById('fileInput').value = '';
@@ -563,6 +779,8 @@
                 document.getElementById('uploadSection').style.display = 'block';
                 document.getElementById('resultsSection').style.display = 'none';
                 this.hideMessages();
+                this.teamRows = [];
+                this.currentAnimationIndex = 0;
             }
         }
 

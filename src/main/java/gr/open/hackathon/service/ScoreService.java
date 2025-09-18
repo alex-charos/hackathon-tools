@@ -15,7 +15,13 @@ import java.util.stream.Collectors;
 public class ScoreService {
 
     public List<TeamScore> calculateScores(MultipartFile file) throws Exception {
+        return calculateScores(file, false);
+    }
+
+    public List<TeamScore> calculateScores(MultipartFile file, boolean verifyResults) throws Exception {
         Map<Integer, List<Double>> teamScores = new HashMap<>();
+        Map<Integer, Map<String, List<Double>>> teamCategoryScores = new HashMap<>();
+        Map<Integer, Integer> teamVoteCounts = new HashMap<>();
 
         try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
             Sheet sheet = workbook.getSheetAt(0);
@@ -36,19 +42,52 @@ public class ScoreService {
                     Matcher matcher = teamPattern.matcher(colName);
                     if (matcher.find()) {
                         int teamId = Integer.parseInt(matcher.group(1));
+
+                        // Extract category from column name (everything before " (ID X)")
+                        String category = colName.replaceAll("\\s*\\(ID[#\\s]*\\d+\\)\\s*$", "").trim();
+
                         double score = cell.getNumericCellValue();
                         teamScores.computeIfAbsent(teamId, k -> new ArrayList<>()).add(score);
+
+                        if (verifyResults) {
+                            teamCategoryScores.computeIfAbsent(teamId, k -> new HashMap<>())
+                                    .computeIfAbsent(category, k -> new ArrayList<>()).add(score);
+                            teamVoteCounts.put(teamId, teamVoteCounts.getOrDefault(teamId, 0) + 1);
+                        }
                     }
                 }
             }
         }
 
-        return teamScores.entrySet().stream()
-                .map(e -> {
-                    double avg = e.getValue().stream().mapToDouble(Double::doubleValue).average().orElse(0);
-                    return new TeamScore(e.getKey(), avg);
-                })
-                .sorted(Comparator.comparingDouble(TeamScore::getAverage).reversed())
-                .collect(Collectors.toList());
+        if (verifyResults) {
+            return teamScores.entrySet().stream()
+                    .map(e -> {
+                        int teamId = e.getKey();
+                        double avg = e.getValue().stream().mapToDouble(Double::doubleValue).average().orElse(0);
+
+                        // Calculate category averages
+                        Map<String, Double> categoryAverages = new HashMap<>();
+                        if (teamCategoryScores.containsKey(teamId)) {
+                            teamCategoryScores.get(teamId).forEach((category, scores) -> {
+                                double categoryAvg = scores.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+                                categoryAverages.put(category, categoryAvg);
+                            });
+                        }
+
+                        int totalVotes = teamVoteCounts.getOrDefault(teamId, 0) / 5; // Divide by 5 categories per team per judge
+
+                        return new TeamScore(teamId, avg, categoryAverages, totalVotes);
+                    })
+                    .sorted(Comparator.comparingDouble(TeamScore::getAverage).reversed())
+                    .collect(Collectors.toList());
+        } else {
+            return teamScores.entrySet().stream()
+                    .map(e -> {
+                        double avg = e.getValue().stream().mapToDouble(Double::doubleValue).average().orElse(0);
+                        return new TeamScore(e.getKey(), avg);
+                    })
+                    .sorted(Comparator.comparingDouble(TeamScore::getAverage).reversed())
+                    .collect(Collectors.toList());
+        }
     }
 }
